@@ -42,7 +42,7 @@ from VAE_rec_model import *
 
 """Hyperparameters"""
 config = {}
-config['num_layers'] = 1
+config['num_layers'] = 2
 config['hidden_size'] =  60
 config['max_grad_norm'] = 1
 config['batch_size'] = batch_size = 64

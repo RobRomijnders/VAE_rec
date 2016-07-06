@@ -68,7 +68,6 @@ class Model():
         if time_step > 0: tf.get_variable_scope().reuse_variables()
         (cell_output, state) = cell_enc(self.x[:, :, time_step], state)
         outputs_enc.append(cell_output)
-      self.final_state = state
 
     with tf.name_scope("Enc_2_lat") as scope:
       #m_enc,h_enc = tf.split(1,2,self.final_state)
@@ -126,7 +125,7 @@ class Model():
       cell_dec = tf.nn.rnn_cell.MultiRNNCell([cell_dec] * num_layers)
 
       #Initial state
-      initial_state_dec = tf.tile(h_start,[1,2])
+      initial_state_dec = tf.tile(h_start,[1,2*num_layers])
       PARAMS = []
       self.states = []
       state = initial_state_dec
