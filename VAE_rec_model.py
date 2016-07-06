@@ -71,35 +71,37 @@ class Model():
       self.final_state = state
 
     with tf.name_scope("Enc_2_lat") as scope:
-      m_enc,h_enc = tf.split(1,2,self.final_state)
+      #m_enc,h_enc = tf.split(1,2,self.final_state)
       #layer for mean of z
       W_mu = tf.Variable(xv_init(hidden_size,num_l))
       b_mu = tf.Variable(tf.constant(0.1,shape=[num_l],dtype=tf.float32))
-      self.z_mu = tf.nn.xw_plus_b(h_enc,W_mu,b_mu)  #mu, mean, of latent space
+      self.z_mu = tf.nn.xw_plus_b(cell_output,W_mu,b_mu)  #mu, mean, of latent space
 
       #layer for sigma of z
       W_sig = tf.Variable(xv_init(hidden_size,num_l))
       b_sig = tf.Variable(tf.constant(0.1,shape=[num_l],dtype=tf.float32))
-      z_sig_log_sq = tf.nn.xw_plus_b(h_enc,W_sig,b_sig)  #sigma of latent space, in log-scale and squared.
+      z_sig_log_sq = tf.nn.xw_plus_b(cell_output,W_sig,b_sig)  #sigma of latent space, in log-scale and squared.
       # This log_sq will save computation later on. log(sig^2) is a real number, so no sigmoid is necessary
 
     with tf.name_scope("Latent_space") as scope:
       self.eps = tf.random_normal(tf.shape(self.z_mu),0,1,dtype=tf.float32)
       self.z = self.z_mu + tf.mul(tf.sqrt(tf.exp(z_sig_log_sq)),self.eps)   #Z is the vector in latent space
 
-    with tf.name_scope("Lat_2_dec") as scope:
+    with tf.variable_scope("Lat_2_dec") as scope:
       #Create initial vector
       params_xstart = 3 + 4    # 3 (X,Y,Z) plus 4 (sx,sx,sz,rho)
       W_xstart = tf.Variable(xv_init(num_l,params_xstart))
-      b_xstart = tf.Variable(tf.constant(10,shape=[params_xstart],dtype=tf.float32))
-      parameters_xstart = tf.nn.relu(tf.nn.xw_plus_b(self.z,W_xstart,b_xstart))
+      self.b_xstart = tf.Variable(tf.constant([5.0,2.0,0.1,8.0,12.0,2.0,0.2],dtype=tf.float32))
+      self.parameters_xstart = tf.nn.xw_plus_b(self.z,W_xstart,self.b_xstart)
 
-      mu1x,mu2x,mu3x,s1x,s2x,s3x,rhox = tf.split(1,params_xstart,parameters_xstart)  #Individual vectors in [batch_size,1]
+      mu1x,mu2x,mu3x,s1x,s2x,s3x,rhox = tf.split(1,params_xstart,self.parameters_xstart)  #Individual vectors in [batch_size,1]
       s1x = tf.exp(s1x)
       s2x = tf.exp(s2x)
       s3x = tf.exp(s3x)
       rhox = tf.tanh(rhox)
       x_start = tf.concat(1,[mu1x,mu2x,mu3x])
+
+
       #Reconstruction loss for x_start
       xs1,xs2,xs3 = tf.split(1,3,self.x[:,:3,0])
       pxstart12 = tf_2d_normal(xs1, xs2, mu1x, mu2x, s1x, s2x, rhox)   #probability in x1x2 plane
@@ -110,12 +112,12 @@ class Model():
       #Create initial hidden state and memory state
       W_hstart = tf.Variable(xv_init(num_l,hidden_size))
       b_hstart = tf.Variable(tf.constant(0.01,shape=[hidden_size],dtype=tf.float32))
-      h_start = tf.nn.relu(tf.nn.xw_plus_b(self.z,W_hstart,b_hstart))
+      h_start = tf.nn.xw_plus_b(self.z,W_hstart,b_hstart)
 
-    with tf.name_scope("Out_layer") as scope:
+    with tf.variable_scope("Out_layer") as scope:
       params = 7 # x,y,z,sx,sy,sz,rho
       output_units = mixtures*params  #Two for distribution over hit&miss, params for distribution parameters
-      W_o = tf.Variable(tf.random_normal([hidden_size,output_units], stddev=0.01))
+      W_o = tf.Variable(tf.random_normal([hidden_size,output_units], stddev=0.1))
       b_o = tf.Variable(tf.constant(0.5, shape=[output_units]))
 
 
@@ -136,9 +138,9 @@ class Model():
         #Convert hidden state to offset for the next
         params_MDN = tf.nn.xw_plus_b(cell_output,W_o,b_o) # Now in [batch_size,output_units]
         PARAMS.append(params_MDN)
-        x_in = params_MDN[:,:3]   #First three columns are the new x_in
+        x_in = x_in + params_MDN[:,:3]   #First three columns are the new x_in
 
-    with tf.name_scope("Loss_calc") as scope:
+    with tf.variable_scope("Loss_calc") as scope:
       ### Reconstruction loss
       PARAMS = tf.pack(PARAMS[:-1])
       PARAMS = tf.transpose(PARAMS,[1,2,0])  # Now in [batch_size, output_units,seq_len-1]
@@ -166,7 +168,7 @@ class Model():
 
       #Some decay on the learning rate
       global_step = tf.Variable(0,trainable=False)
-      lr = tf.train.exponential_decay(learning_rate,global_step,14000,0.95,staircase=True)
+      lr = tf.train.exponential_decay(learning_rate,global_step,14000,0.99,staircase=True)
       optimizer = tf.train.AdamOptimizer(lr)
       gradients = zip(grads, tvars)
       self.train_step = optimizer.apply_gradients(gradients,global_step=global_step)
@@ -175,6 +177,17 @@ class Model():
       #  - Histogram of the gradient over the Tensor
       #  - Histogram of the grradient-norm over the Tensor
       self.numel = tf.constant([[0]])
+      for gradient, variable in gradients:
+        if isinstance(gradient, ops.IndexedSlices):
+          grad_values = gradient.values
+        else:
+          grad_values = gradient
+
+        self.numel +=tf.reduce_sum(tf.size(variable))
+
+        h1 = tf.histogram_summary(variable.name, variable)
+        h2 = tf.histogram_summary(variable.name + "/gradients", grad_values)
+        h3 = tf.histogram_summary(variable.name + "/gradient_norm", clip_ops.global_norm([grad_values]))
     #Define one op to call all summaries
     self.merged = tf.merge_all_summaries()
 

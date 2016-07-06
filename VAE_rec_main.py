@@ -43,20 +43,19 @@ from VAE_rec_model import *
 """Hyperparameters"""
 config = {}
 config['num_layers'] = 1
-config['hidden_size'] = 180  #Inherited from Rajiv's .ipynb, we need to discuss this
-config['max_grad_norm'] = 10
+config['hidden_size'] =  60
+config['max_grad_norm'] = 1
 config['batch_size'] = batch_size = 64
-config['sl'] = sl = 22          #sequence length
+config['sl'] = sl = 11          #sequence length
 config['mixtures'] = 1
 config['learning_rate'] = .005
-config['num_l'] = 20
+config['num_l'] = 30
 
 
 
 ratio = 0.8         #Ratio for train-val split
 plot_every = 100    #How often do you want terminal output for the performances
-max_iterations = 500
-dropout = 0.6       #Dropout rate in the fully connected layer
+max_iterations = 50000
 
 
 
@@ -71,6 +70,7 @@ db = 4   #distance to basket
 dl.munge_data(11,sl,db)
 #Center the data
 dl.center_data(center)
+dl.entropy_offset()
 dl.split_train_test(ratio = 0.8)
 data_dict = dl.data
 dl.plot_traj_2d(20,'at %.0f feet from basket'%db)
@@ -121,9 +121,13 @@ if True:
 
       #Check validation performance
       batch_ind_val = np.random.choice(Nval,batch_size,replace=False)
-      fetch = [model.cost_seq, model.cost_kld, model.cost_xstart]  #, model.merged
+      fetch = [model.cost_seq, model.cost_kld, model.cost_xstart,model.parameters_xstart]  #, model.merged
 
       result = sess.run(fetch, feed_dict={ model.x: X_val[batch_ind_val]})
+      np.set_printoptions(precision=1)
+      print(result[3][0])
+      print(X_val[batch_ind_val[0],:3,0])
+
       perf_collect[2,step] = cost_val_seq = result[0]
       perf_collect[3,step] = cost_val_kld = result[1]
       perf_collect[5,step] = cost_val_xstart = result[2]
@@ -132,14 +136,13 @@ if True:
 #      summary_str = result[3]
 #      writer.add_summary(summary_str, i)
 #      writer.flush()  #Don't forget this command! It makes sure Python writes the summaries to the log-file
-      print("At %6s / %6s train (%5.3f,%5.3f,%5.3f) val (%5.3f,%5.3f,%5.3f)" % (i,max_iterations,cost_train_seq,cost_train_kld,cost_train_xstart,cost_val_seq,cost_val_kld,cost_val_xstart  ))
+      print("At %6s / %6s train (%6.3f,%6.3f,%6.3f) val (%6.3f,%6.3f,%6.3f)" % (i,max_iterations,cost_train_seq,cost_train_kld,cost_train_xstart,cost_val_seq,cost_val_kld,cost_val_xstart  ))
       step +=1
     sess.run(model.train_step,feed_dict={model.x:X_train[batch_ind]})
   #In the next line we also fetch the softmax outputs
   batch_ind_val = np.random.choice(Nval,batch_size,replace=False)
-  result = sess.run([model.accuracy,model.numel], feed_dict={ model.x: X_val[batch_ind_val]})
-  acc_test = result[0]
-  print('The network has %s trainable parameters'%(result[1]))
+  result = sess.run([model.numel], feed_dict={ model.x: X_val[batch_ind_val]})
+  print('The network has %s trainable parameters'%(result[0]))
 
 
 
