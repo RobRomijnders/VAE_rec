@@ -17,6 +17,8 @@ if 'rob-laptop' in socket.gethostname():
   direc = '/home/rob/Dropbox/ml_projects/basket_local/SportVU-seq/'
 elif 'rob-com' in socket.gethostname():
   sys.path.append('/home/rob/Documents/nn_sportvu')
+  direc = '/home/rob/Documents/nn_sportvu/SportVU-seq/'
+
 #Rajiv: you can add your computer name here
 
 
