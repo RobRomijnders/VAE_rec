@@ -36,7 +36,7 @@ from sklearn.metrics import roc_auc_score,roc_curve
 from data_loader_class import *
 from mpl_toolkits.mplot3d import axes3d
 import matplotlib.mlab as mlab
-from VAE_rec_model import *
+from VAE_rec_model_reverse import *
 
 
 
@@ -49,7 +49,7 @@ config['batch_size'] = batch_size = 64
 config['sl'] = sl = 18          #sequence length
 config['mixtures'] = 1
 config['learning_rate'] = .005
-config['num_l'] = num_l = 15
+config['num_l'] = num_l = 2
 
 
 
@@ -78,7 +78,7 @@ dl.plot_traj_2d(20,'at %.0f feet from basket'%db)
 X_train = np.transpose(data_dict['X_train'],[0,2,1])
 #y_train = data_dict['y_train']
 X_val = np.transpose(data_dict['X_val'],[0,2,1])
-#y_val = data_dict['y_val']
+y_val = data_dict['y_val']
 
 N,crd,_ = X_train.shape
 Nval = X_val.shape[0]
@@ -121,10 +121,9 @@ if True:
 
       #Check validation performance
       batch_ind_val = np.random.choice(Nval,batch_size,replace=False)
-      fetch = [model.cost_seq, model.cost_kld, model.cost_xstart,model.parameters_xstart]  #, model.merged
+      fetch = [model.cost_seq, model.cost_kld, model.cost_xstart]  #, model.merged
 
       result = sess.run(fetch, feed_dict={ model.x: X_val[batch_ind_val]})
-      np.set_printoptions(precision=1)
 
       perf_collect[2,step] = cost_val_seq = result[0]
       perf_collect[3,step] = cost_val_kld = result[1]
@@ -142,7 +141,7 @@ if True:
   result = sess.run([model.numel], feed_dict={ model.x: X_val[batch_ind_val]})
   print('The network has %s trainable parameters'%(result[0]))
 
-
+#     debug = sess.run(model.b_xend)
 z_feed = np.random.randn(batch_size,num_l)
 result = sess.run(model.x_col, feed_dict={ model.z: z_feed})
 
@@ -150,16 +149,28 @@ X_vae = np.transpose(result,[1,2,0])
 labels_dummy = np.random.randint(0,1,size=(batch_size,1))
 plot_basket(X_vae,labels_dummy)
 
+"""Visualize the 2D latent space"""
+label_type = 'y'   #Color scatter plot according to y coordinate
+label_type = 'class'   #Color scatter plot according to hit/miss
 
-#
-#
-#plt.figure()
-#plt.plot(perf_collect[1],label= 'Train class cost')
-#plt.plot(perf_collect[3],label = 'Valid class cost')
-#if MDN:
-#  plt.plot(perf_collect[4],label= 'Train seq cost')
-#  plt.plot(perf_collect[5],label = 'Valid seq cost')
-#plt.legend()
-#plt.show()
-# We can now open TensorBoard. Run the following line from your terminal
-# tensorboard --logdir=/home/rob/Dropbox/ml_projects/basket_local/nn_sportvu/log_tb
+if num_l == 2:
+  ##Extract the latent space coordinates of the validation set
+  start = 0
+  label = []   #The label to save to visualize the latent space
+  z_run = []
+
+  while start + batch_size < Nval:
+    run_ind = range(start,start+batch_size)
+    z_mu_fetch = sess.run(model.z_mu, feed_dict = {model.x:X_val[run_ind]})
+    z_run.append(z_mu_fetch)
+    if label_type == 'y':
+      label.append(X_val[run_ind,1,0])  #The y coordinate of x_start
+    if label_type == 'class':
+      label.append(y_val[run_ind])
+    start += batch_size
+
+  z_run = np.concatenate(z_run,axis=0)
+  label = np.concatenate(label,axis=0)
+
+  plt.figure()
+  plt.scatter(z_run[:,0],z_run[:,1],c = label,linewidths=0.0)
