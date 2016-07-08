@@ -150,8 +150,10 @@ labels_dummy = np.random.randint(0,1,size=(batch_size,1))
 plot_basket(X_vae,labels_dummy)
 
 """Visualize the 2D latent space"""
-label_type = 'y'   #Color scatter plot according to y coordinate
 label_type = 'class'   #Color scatter plot according to hit/miss
+label_type = 'x'   #Color the scatter plot according to x coordinate
+label_type = 'y'   #Color scatter plot according to y coordinate
+
 
 if num_l == 2:
   ##Extract the latent space coordinates of the validation set
@@ -165,6 +167,8 @@ if num_l == 2:
     z_run.append(z_mu_fetch)
     if label_type == 'y':
       label.append(X_val[run_ind,1,0])  #The y coordinate of x_start
+    if label_type == 'x':
+      label.append(X_val[run_ind,0,0])  #The y coordinate of x_start
     if label_type == 'class':
       label.append(y_val[run_ind])
     start += batch_size
