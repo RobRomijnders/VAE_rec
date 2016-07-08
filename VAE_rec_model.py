@@ -130,6 +130,8 @@ class Model():
       self.states = []
       state = initial_state_dec
       x_in = x_start
+      x_collect = []
+      x_collect.append(x_in)
       for time_step in range(sl):
         if time_step > 0: tf.get_variable_scope().reuse_variables()
         (cell_output, state) = cell_dec(x_in, state)
@@ -138,12 +140,17 @@ class Model():
         params_MDN = tf.nn.xw_plus_b(cell_output,W_o,b_o) # Now in [batch_size,output_units]
         PARAMS.append(params_MDN)
         x_in = x_in + params_MDN[:,:3]   #First three columns are the new x_in
+        x_collect.append(x_in)
+
+    #Prepare x_collect for extraction
+    self.x_col = tf.pack(x_collect)   #in [seq_len, batch_size,crd]
+
 
     with tf.variable_scope("Loss_calc") as scope:
       ### Reconstruction loss
       PARAMS = tf.pack(PARAMS[:-1])
       PARAMS = tf.transpose(PARAMS,[1,2,0])  # Now in [batch_size, output_units,seq_len-1]
-      mu1,mu2,mu3,s1,s2,s3,rho = tf.split(1,7,params_MDN)  #Each Tensor in [batch_size,seq_len-1]
+      mu1,mu2,mu3,s1,s2,s3,rho = tf.split(1,7,PARAMS)  #Each Tensor in [batch_size,seq_len-1]
       s1 = tf.exp(s1)
       s2 = tf.exp(s2)
       s3 = tf.exp(s3)
@@ -167,7 +174,7 @@ class Model():
 
       #Some decay on the learning rate
       global_step = tf.Variable(0,trainable=False)
-      lr = tf.train.exponential_decay(learning_rate,global_step,14000,0.99,staircase=True)
+      lr = tf.train.exponential_decay(learning_rate,global_step,1000,0.90,staircase=False)
       optimizer = tf.train.AdamOptimizer(lr)
       gradients = zip(grads, tvars)
       self.train_step = optimizer.apply_gradients(gradients,global_step=global_step)

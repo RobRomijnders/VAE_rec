@@ -46,10 +46,10 @@ config['num_layers'] = 2
 config['hidden_size'] =  60
 config['max_grad_norm'] = 1
 config['batch_size'] = batch_size = 64
-config['sl'] = sl = 11          #sequence length
+config['sl'] = sl = 18          #sequence length
 config['mixtures'] = 1
 config['learning_rate'] = .005
-config['num_l'] = 30
+config['num_l'] = num_l = 15
 
 
 
@@ -125,8 +125,6 @@ if True:
 
       result = sess.run(fetch, feed_dict={ model.x: X_val[batch_ind_val]})
       np.set_printoptions(precision=1)
-      print(result[3][0])
-      print(X_val[batch_ind_val[0],:3,0])
 
       perf_collect[2,step] = cost_val_seq = result[0]
       perf_collect[3,step] = cost_val_kld = result[1]
@@ -145,7 +143,12 @@ if True:
   print('The network has %s trainable parameters'%(result[0]))
 
 
+z_feed = np.random.randn(batch_size,num_l)
+result = sess.run(model.x_col, feed_dict={ model.z: z_feed})
 
+X_vae = np.transpose(result,[1,2,0])
+labels_dummy = np.random.randint(0,1,size=(batch_size,1))
+plot_basket(X_vae,labels_dummy)
 
 
 #
