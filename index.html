@@ -1,0 +1,74 @@
+<!doctype html>
+<html>
+  <head>
+    <meta charset="utf-8">
+    <meta http-equiv="X-UA-Compatible" content="chrome=1">
+    <title>VAE rec by RobRomijnders</title>
+
+    <link rel="stylesheet" href="stylesheets/styles.css">
+    <link rel="stylesheet" href="stylesheets/github-light.css">
+    <meta name="viewport" content="width=device-width">
+    <!--[if lt IE 9]>
+    <script src="//html5shiv.googlecode.com/svn/trunk/html5.js"></script>
+    <![endif]-->
+  </head>
+  <body>
+    <div class="wrapper">
+      <header>
+        <h1>VAE rec</h1>
+        <p>Variational Recurrent Auto Encoder</p>
+
+        <p class="view"><a href="https://github.com/RobRomijnders/VAE_rec">View the Project on GitHub <small>RobRomijnders/VAE_rec</small></a></p>
+
+
+        <ul>
+          <li><a href="https://github.com/RobRomijnders/VAE_rec/zipball/master">Download <strong>ZIP File</strong></a></li>
+          <li><a href="https://github.com/RobRomijnders/VAE_rec/tarball/master">Download <strong>TAR Ball</strong></a></li>
+          <li><a href="https://github.com/RobRomijnders/VAE_rec">View On <strong>GitHub</strong></a></li>
+        </ul>
+      </header>
+      <section>
+        <h1>
+<a id="variational-recurrent-auto-encoder" class="anchor" href="#variational-recurrent-auto-encoder" aria-hidden="true"><span aria-hidden="true" class="octicon octicon-link"></span></a>Variational Recurrent Auto Encoder</h1>
+
+<p>In this post, we discussed the variational auto encoder. This post extends this idea to data with sequential nature in a recurrent network. Auto encoders belong to the family of variational inference. In normal networks we define deterministic functions and backpropagate over the gradients. In variational inference, our network contains stochastic or information layers. Also we regard the cost function from a Bayesian standpoint. All together, this makes a likelihood of our data under the model. This likelihood turns out to be intractable. Therefore, we optimize a bound on this quantity. Hence, variational inference.</p>
+
+<h1>
+<a id="computation-graph" class="anchor" href="#computation-graph" aria-hidden="true"><span aria-hidden="true" class="octicon octicon-link"></span></a>Computation graph</h1>
+
+<p>An auto encoder always follows a similar structure: an encoder maps data to a dense representation; a decoder reconstructs the data from this representation. In normal auto encoders, the dense representation can be any layer in a neural network. As we constrain the size of this network, by backpropagation we learn a dense representation of the data.</p>
+
+<h2>
+<a id="information-layer" class="anchor" href="#information-layer" aria-hidden="true"><span aria-hidden="true" class="octicon octicon-link"></span></a>Information layer</h2>
+
+<p>In variational auto encoders, the dense representation is also named information layer. This layer follows Information Theory and we reason accordingly. There is two viewpoints to this layer. They boil down to the same math</p>
+
+<ul>
+<li>
+<em>The information layer is a mapping to latent space</em> The encoder maps the data to this latent space. More specifically, the encoder generates conditional distribution <em>q(z|x)</em> From this conditional distribution, we sample a z for the decoder</li>
+<li>
+<em>The information layer is a noisy connection between encoder and decoder. This article by Dirk Kingma introduces what we call the _reparametrization trick</em>. For a Gaussian prior on z, the information layer is merely a deterministic function f(z) = mu + sigma*eps, where mu and sigma follow from the encoder. Eps is a draw from a unit Gaussian.</li>
+</ul>
+
+<p>The according python code is as follows:
+    with tf.name_scope("Latent_space") as scope:
+      self.eps = tf.random_normal(tf.shape(self.z_mu),0,1,dtype=tf.float32)
+      self.z = self.z_mu + tf.mul(tf.sqrt(tf.exp(z_sig_log_sq)),self.eps)   #Z is the vector in latent space</p>
+
+<h1>
+<a id="model" class="anchor" href="#model" aria-hidden="true"><span aria-hidden="true" class="octicon octicon-link"></span></a>Model</h1>
+
+<p>These experiments use an LSTM as recurrent neural network. LSTM can depend on long term information. This is beneficial for VRAE, where the only information arises from the latent space. From the latent space, the model predicts the initial state. Throughout the sequence, the output at every step inputs into the LSTM. This way, the model knows what it just predicted</p>
+
+<p>TODO: reference Kingma
+reference Karol</p>
+      </section>
+      <footer>
+        <p>This project is maintained by <a href="https://github.com/RobRomijnders">RobRomijnders</a></p>
+        <p><small>Hosted on GitHub Pages &mdash; Theme by <a href="https://github.com/orderedlist">orderedlist</a></small></p>
+      </footer>
+    </div>
+    <script src="javascripts/scale.fix.js"></script>
+    
+  </body>
+</html>
