@@ -60,8 +60,39 @@
 
 <p>These experiments use an LSTM as recurrent neural network. LSTM can depend on long term information. This is beneficial for VRAE, where the only information arises from the latent space. From the latent space, the model predicts the initial state. Throughout the sequence, the output at every step inputs into the LSTM. This way, the model knows what it just predicted</p>
 
-<p>TODO: reference Kingma
-reference Karol</p>
+<h1>
+<a id="results" class="anchor" href="#results" aria-hidden="true"><span aria-hidden="true" class="octicon octicon-link"></span></a>Results</h1>
+
+<p>Fortunately, the model can auto encode the basketbal trajectories with two latent variables. In <a href="https://robromijnders.github.io/MDN/">this</a> post, we worked on three point shots. They're obtained from NBA games, where a tracking system outputs the X,Y and Z coordinates for the ball at 25Hz during the game. </p>
+
+<p>A 2 dimensional latent space allows for visualizations. For example in this image, we color the latent space according to the x coordinate from where the ball is shot.
+<img src="https://github.com/RobRomijnders/VAE_rec/blob/master/images/2Dlatentspace_with_x_coordinate.png?raw=true" alt="color_x"></p>
+
+<p>And in this scatterplot, the y coordinates color the points
+<img src="https://github.com/RobRomijnders/VAE_rec/blob/master/images/2Dlatentspace_with_y_coordinate.png?raw=true" alt="color_y"></p>
+
+<p><em>The points in this scatterplot corresponds to the means of the latent space for data in the validation set.</em></p>
+
+<p>Interestingly, the latent space cares most about the x and y coordinate from where the ball is shot. The latent space transfers the x and y coordinate of the startpoint in exactly the horse-shoe shape that the three point line would be.</p>
+
+<p>In another scatterplot, we color the points according to being a hit or miss.
+<img src="https://github.com/RobRomijnders/VAE_rec/blob/master/images/2Dlatentspace_with_hit-miss.png?raw=true" alt="color_hitmiss">
+This image shows no obvious clustering that we can reason about. A reason could be as follows. To reconstruct a trajectory, it would be important to know the startpoint. These are NBA games, so you know that shots would all go directly to the basket. Misses are only slightly off from hits and many times they bounce on the rim. In that sense, the latent space wouldn't need to convey information on hit/miss probability as it doesn't lower the reconstruction loss. </p>
+
+<p>You want to find it more? Here are some directions</p>
+
+<ul>
+<li>In this <a href="https://dl.dropboxusercontent.com/u/16027344/ICML%202015%20Deep%20Learning%20Workshop/Karol%20Gregor%2C%20GOOGLE%20Deepmind.p2g/Default.html">talk</a>, Karol Gregor talks together his work on autoencoders, variational inference and DRAW</li>
+<li>In <a href="https://www.youtube.com/watch?v=P78QYjWh5sM">this</a> talk, Karol Gregor talks on DRAW at Nando de Freitas' course in 
+London </li>
+<li>In <a href="https://www.youtube.com/watch?v=rjZL7aguLAs">this</a> talk Diederik Kingma talks at ICML on his paper <a href="https://arxiv.org/abs/1312.6114">Auto encoding Variational Bayes</a>
+Extensions of these models</li>
+<li>[This[(<a href="https://arxiv.org/abs/1607.00148">https://arxiv.org/abs/1607.00148</a>) paper discusses the use of auto encoding principles for anomaly detection</li>
+<li>
+<a href="http://papers.nips.cc/paper/5352-semi-supervised-learning-with-deep-generative-models.pdf">This</a> work extends the unsupervised mechanisms of VAE to the semi-supervised case where some part of the data has labels</li>
+</ul>
+
+<p>As always, I am curious to any comments and questions. Reach me at <a href="mailto:romijndersrob@gmail.com">romijndersrob@gmail.com</a></p>
       </section>
       <footer>
         <p>This project is maintained by <a href="https://github.com/RobRomijnders">RobRomijnders</a></p>
